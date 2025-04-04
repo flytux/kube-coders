@@ -57,6 +57,8 @@ EOF
 
 kubectl apply -f nfs-sc.yml
 
+kubectl patch storageclass nfs-csi -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
 # pvc 생성 테스트
 kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/pvc-nfs-csi-dynamic.yaml
 

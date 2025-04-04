@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: apisix
+    app.kubernetes.io/name: apisix
+  name: apisix-dash
+  namespace: apisix
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: apisix-dash.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: apisix-dashboard
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - apisix-dash.local
+    secretName: apisix-tls

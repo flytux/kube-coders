@@ -1,0 +1,13 @@
+ingress:
+  enabled: true
+  hosts:
+    - host: apisix.local
+      paths: 
+      - "/"
+  tls:
+  - secretName: apisix-tls
+    hosts:
+      - apisix.local
+
+dashboard:
+  enabled: true
