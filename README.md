@@ -23,8 +23,65 @@
 3. keycloak 설치
 4. keycloak realm, user 설정
 5. nfs, nfs-csi storage class 설치
-6. code-server 배포
-7. apisix route 설정
+```
+# nfs 서버 설치
+apt install nfs-server
+mkdir -p /var/nfs/pv
+chown -R 65534:65534 /var/nfs/pv
+
+# 파일 공유 설정
+cat <<EOF > /etc/exports\n/var/nfs/pv
+192.168.122.126(rw,sync,no_subtree_check)\n/var/nfs/pv
+192.168.122.126(rw,sync,no_subtree_check)
+EOF
+
+# nfs-csi 드라이버 설치
+curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.5.0/deploy/install-driver.sh | bash -s v4.5.0 --
+
+# strageclass 설치
+$ cat <<EOF > nfs-sc.yml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: 192.168.45.46
+  share: /var/nfs/pv
+  mountPermissions: "0777"
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+mountOptions:
+  - nfsvers=4.1
+EOF
+
+kubectl apply -f nfs-sc.yml
+
+# pvc 생성 테스트
+kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/pvc-nfs-csi-dynamic.yaml
+
+# snapshot controller 설치
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
+
+# snapshotclass 설치
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/snapshot/snapshotclass-nfs.yaml
+
+# volumesnapshot 생성
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/snapshot/snapshot-nfs-dynamic.yaml
+
+# pvc 생성 from volumesnapshot
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/snapshot/pvc-nfs-snapshot-restored.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/snapshot/nginx-pod-restored-snapshot.yaml
+
+```
+7. code-server 배포
+8. apisix route 설정
 ---
 
 ```
