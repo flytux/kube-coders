@@ -19,7 +19,40 @@
 ### 구성 순서
 ---
 1. apisix-gateway 설치
+```
+helm upgrade -i apisix apisix-2.10.0.tgz -f values.yaml -n apisix --create-namespace
 
+cat <<EOF > ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: apisix
+    app.kubernetes.io/name: apisix
+  name: apisix-dash
+  namespace: apisix
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: apisix-dash.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: apisix-dashboard
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - apisix-dash.local
+    secretName: apisix-tls
+EOF
+
+k apply -f ingress.yaml
+
+```
 2. keycloak 설치
 3. keycloak realm, user 설정
 4. nfs, nfs-csi storage class 설치
