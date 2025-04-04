@@ -12,6 +12,9 @@
 - 각 사용자별 코드 서버 배포는 Keycloak 사용자 등록 --> 사용자 별 개발 환경 배포 (Helm chart) 형태로 수행되고, 자동화 구성이 필요합니다. (TBD)
 ---
 
+![kube-coders-overview](./kube-coders-overview.png)  
+
+
 1. install apisix-gateway
 2. install apisix-dashboard
 3. install keycloak
