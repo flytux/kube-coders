@@ -1,5 +1,17 @@
 # kube-coders
 
+
+---
+
+멀티 개발자가 VS Code 기반으로 원격 개발이 가능한 환경을 제공합니다.
+- Code-Server를 기준으로 kubernetes 클러스터 내 개별 파드를 구성하여 제공합니다.
+- Keycloak 통합 인증 서버를 통해 사용자 인증을 수행합니다. (OIDC)
+- API Gateway에서 사용자 인증 처리 후 Keycloak 사용자 ID (sub)를 이용하여 각 사용자 별 Code-Server로 연결합니다.
+- Code-Server는 API Gateway에 등록된 사설인증서를 이용한 TLS 통신으로 동작합니다. (Extension 정상 구동 시 필요)
+- Code-Server 버전과 VS-Code 버전에 따라 지원되는 extension을 컨테이너 이미지 빌드시 포함하여 구성합니다.
+- 각 사용자별 코드 서버 배포는 Keycloak 사용자 등록 --> 사용자 별 개발 환경 배포 (Helm chart) 형태로 수행되고, 자동화 구성이 필요합니다. (TBD)
+---
+
 1. install apisix-gateway
 2. install apisix-dashboard
 3. install keycloak
