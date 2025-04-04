@@ -19,10 +19,10 @@
 ### 구성 순서
 ---
 1. apisix-gateway 설치
-2. apisix-dashboard 설치
-3. keycloak 설치
-4. keycloak realm, user 설정
-5. nfs, nfs-csi storage class 설치
+
+2. keycloak 설치
+3. keycloak realm, user 설정
+4. nfs, nfs-csi storage class 설치
 ```
 # nfs 서버 설치
 apt install nfs-server
@@ -82,8 +82,8 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/snapshot/nginx-pod-restored-snapshot.yaml
 
 ```
-7. code-server 배포
-8. apisix route 설정
+5. code-server 배포
+6. apisix route 설정
 ---
 
 ```
