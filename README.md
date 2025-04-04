@@ -11,9 +11,10 @@
 - Code-Server 버전과 VS-Code 버전에 따라 지원되는 extension을 컨테이너 이미지 빌드시 포함하여 구성합니다.
 - 각 사용자별 코드 서버 배포는 Keycloak 사용자 등록 --> 사용자 별 개발 환경 배포 (Helm chart) 형태로 수행되고, 자동화 구성이 필요합니다. (TBD)
 ---
-
 ![kube-coders-overview](./kube-coders-overview.png)  
-
+---
+![coders-screenshot](./coders-screenshot.png)  
+---
 
 1. install apisix-gateway
 2. install apisix-dashboard
