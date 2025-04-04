@@ -16,12 +16,16 @@
 ![coders-screenshot](./coders-screenshot.png)  
 ---
 
-1. install apisix-gateway
-2. install apisix-dashboard
-3. install keycloak
-4. setup keycloak realm, user
-4. install code-server 
-5. setup apisix route
+### 구성 순서
+---
+1. apisix-gateway 설치
+2. apisix-dashboard 설치
+3. keycloak 설치
+4. keycloak realm, user 설정
+5. nfs, nfs-csi storage class 설치
+6. code-server 배포
+7. apisix route 설정
+---
 
 ```
 ---
