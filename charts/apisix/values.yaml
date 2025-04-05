@@ -1,13 +1,14 @@
 ingress:
   enabled: true
   hosts:
-    - host: apisix.local
+    - host: gateway.local
       paths: 
-      - "/"
-  tls:
-  - secretName: apisix-tls
-    hosts:
-      - apisix.local
+      - /
+
+apisix:
+  admin:
+    enabled: true
+    type: ClusterIP
 
 dashboard:
   enabled: true

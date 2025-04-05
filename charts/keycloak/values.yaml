@@ -1,0 +1,8 @@
+auth:
+  adminUser: admin
+  adminPassword: "admin"
+ingress:
+  enabled: true
+  ingressClassName: "traefik"
+  hostname: key.local
+  tls: false

@@ -8,8 +8,12 @@ metadata:
   namespace: apisix
 spec:
   ingressClassName: traefik
+  tls:
+  - hosts:
+    - gateway.local
+    secretName: gateway-tls
   rules:
-  - host: apisix-dash.local
+  - host: dash.local
     http:
       paths:
       - backend:
@@ -19,7 +23,3 @@ spec:
               number: 80
         path: /
         pathType: ImplementationSpecific
-  tls:
-  - hosts:
-    - apisix-dash.local
-    secretName: apisix-tls
