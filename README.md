@@ -87,12 +87,12 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs
 # apisix ingress와 tls 설정을 추가한 values.yaml을 적용한다.
 
 # self signed 인증서 생성 (Wildcard Top Level Domain 인식안됨 *.local -> *.kw.local)
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout local.key -out local.crt -subj '/CN=*.kw.local' -addext 'subjectAltName=DNS:*.kw.local'
+# openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout local.key -out local.crt -subj '/CN=*.kw.local' -addext 'subjectAltName=DNS:*.kw.local'
 
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout apisix.key -out apisix.crt -subj '/CN=apisix.local' -addext 'subjectAltName=DNS:apisix.local'
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout gateway.key -out apisix.crt -subj '/CN=gateway.local' -addext 'subjectAltName=DNS:gateway.local'
 
 # 인증서 시크릿 생성
-kubectl create secret tls apisix-tls --key apisix.key --cert apisix.crt -n apisix
+kubectl create secret tls gateway-tls --key gateway.key --cert gateway.crt -n apisix
 
 # apisix 설치
 helm upgrade -i apisix apisix-2.10.0.tgz -f values.yaml -n apisix --create-namespace
@@ -110,7 +110,7 @@ helm upgrade -i keycloak keycloak-24.5.0.tgz -f values.yaml -n keycloak --create
 
 ```
 # 변수 설정
-KEYCLOAK_URL="http://keycloak.kw.local"
+KEYCLOAK_URL="http://key.local"
 ADMIN_USERNAME="admin"
 ADMIN_PASSWORD="admin"
 REALM_NAME="dev"
@@ -190,7 +190,7 @@ USER_ID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users?usern
 ```
 # CoreDNS에 클러스터 인그레스 엔트리 추가
 hosts {
-        192.168.100.1 apisix.local apisix-dash.local keycloak.local
+        192.168.100.1 gateway.local dash.local key.local
         fallthrough
 }
 
