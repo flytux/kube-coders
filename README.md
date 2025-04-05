@@ -31,7 +31,7 @@ chown -R 65534:65534 /var/nfs/pv
 # 파일 공유 설정
 cat <<EOF > /etc/exports
 192.168.122.126(rw,sync,no_subtree_check,no_root_squash)  # node 1
-192.168.122.126(rw,sync,no_subtree_check,no_root_squash)  # node 2
+192.168.122.210(rw,sync,no_subtree_check,no_root_squash)  # node 2
 EOF
 
 # nfs-csi 드라이버 설치
