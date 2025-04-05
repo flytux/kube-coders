@@ -172,34 +172,103 @@ spec:
 **4. keycloak realm, user 설정**
 
 ```
+# 변수 설정
+KEYCLOAK_URL="http://keycloak.kw.local"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="admin"
+REALM_NAME="dev"
+CLIENT_ID="apisix"
+
+# ADMIN_TOKEN 조회
+ADMIN_TOKEN=$(curl -s -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+         -H "Content-Type: application/x-www-form-urlencoded" \
+         -d "username=${ADMIN_USERNAME}" \
+         -d "password=${ADMIN_PASSWORD}" \
+         -d "grant_type=password" \
+         -d "client_id=admin-cli" | jq -r '.access_token')
+
+# ADMIN_TOKEN TTL 변경 -> 1 시간
+curl -s -X PUT "${KEYCLOAK_URL}/admin/realms/master" \
+     -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+     -H "Content-Type: application/json" \
+     -d '{
+         "accessTokenLifespan": 3600
+     }'
+
+# dev realm 생성		 
+curl -s -X POST "${KEYCLOAK_URL}/admin/realms" \
+     -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+     -H "Content-Type: application/json" \
+     -d '{"realm":"'${REALM_NAME}'", "enabled":true}'		 
+		 
+# apisix client 생성		 
+curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
+     -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+     -H "Content-Type: application/json" \
+     -d '{
+         "clientId": "'${CLIENT_ID}'",
+         "protocol": "openid-connect",
+         "publicClient": false,
+         "standardFlowEnabled": true,
+         "directAccessGrantsEnabled": true,
+         "webOrigins": ["+"]
+     }'
+
+# client uuid 조회	 
+CLIENT_UUID=$(curl "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" -H "Authorization: Bearer ${ADMIN_TOKEN}" |  jq -r --arg CLIENT_ID "$CLIENT_ID" '.[] | select(.clientId == $CLIENT_ID) | .id')
+
+# client secret 조회
+CLIENT_SECRET=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients/${CLIENT_UUID}/client-secret" \
+     -H "Authorization: Bearer ${ADMIN_TOKEN}" | jq -r '.value')
+
+# 사용자 생성
+curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users" \
+     -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "username": "jaehoon",
+           "email": "jaehoon@kubeworks.net",
+           "enabled": true,
+           "firstName": "Jaehoon",
+           "lastName": "Jung",
+           "credentials": [{"type": "password", "value": "1", "temporary": false}]
+       }'
+
+# 사용자 ID 조회	   
+USER_ID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users?username=jaehoon" \
+     -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+     | jq -r '.[0].id')
 ```
 
 **5. code-server 배포**
 
 ```
+# Service 이름을 code-$USER_ID 로 설정하여 코드서버을 Deployment로 생성하여 배포
+# Code 서버의 최신 버전 이미지를 플러그인 포함하여 빌드
+# Keycloak USER_ID 생성 후 자동으로 배포하도록 구성
 ```
 
 **6. apisix route 설정**
 
 ```
-```
----
+# CoreDNS에 클러스터 인그레스 엔트리 추가
+hosts {
+        192.168.100.1 apisix.kw.local apisix-dash.kw.local keycloak.kw.local
+        fallthrough
+}
 
-```
+# APISIX Dashboard에서 Route 추가
 ---
 uri: /*
 name: 'code-server-route'
 plugins:
   openid-connect:
     bearer_only: false
-    client_id: apisix
-    client_secret: ldrUpII6f5XEds+ljNMP/oQRJjNmUo9wrLRZLnDsdbOMVhzeYwkDzrNrUmN8GR5j
-    discovery: http://keycloak/realms/dev/.well-known/openid-configuration
+    client_id: apisix                                 # CLIENT_ID
+    client_secret: lk0DLH9zJcn4uGmtLi4hJ9SYJIzE32l6   # CLIENT_SECRET
+    discovery: http://keycloak.keycloak/realms/dev/.well-known/openid-configuration
     introspection_endpoint_auth_method: client_secret_post
-    realm: dev
-    scope: openid profile
-    set_userinfo_header: true
-    ssl_verify: false
+    realm: dev    
     token_endpoint_auth_method: client_secret_basic
   proxy-rewrite:
     regex_uri:
