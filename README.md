@@ -18,44 +18,8 @@
 
 ### 구성 순서
 ---
-1. apisix-gateway 설치
-```
-helm upgrade -i apisix apisix-2.10.0.tgz -f values.yaml -n apisix --create-namespace
 
-cat <<EOF > ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  labels:
-    app.kubernetes.io/instance: apisix
-    app.kubernetes.io/name: apisix
-  name: apisix-dash
-  namespace: apisix
-spec:
-  ingressClassName: traefik
-  rules:
-  - host: apisix-dash.local
-    http:
-      paths:
-      - backend:
-          service:
-            name: apisix-dashboard
-            port:
-              number: 80
-        path: /
-        pathType: ImplementationSpecific
-  tls:
-  - hosts:
-    - apisix-dash.local
-    secretName: apisix-tls
-EOF
-
-k apply -f ingress.yaml
-
-```
-2. keycloak 설치
-3. keycloak realm, user 설정
-4. nfs, nfs-csi storage class 설치
+**1. nfs, nfs-csi storage class 설치**
 ```
 # nfs 서버 설치
 apt install nfs-server
@@ -64,8 +28,8 @@ chown -R 65534:65534 /var/nfs/pv
 
 # 파일 공유 설정
 cat <<EOF > /etc/exports\n/var/nfs/pv
-192.168.122.126(rw,sync,no_subtree_check)\n/var/nfs/pv
-192.168.122.126(rw,sync,no_subtree_check)
+192.168.122.126(rw,sync,no_subtree_check)\n/var/nfs/pv # node 1
+192.168.122.126(rw,sync,no_subtree_check)              # node 2
 EOF
 
 # nfs-csi 드라이버 설치
@@ -115,8 +79,110 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/snapshot/nginx-pod-restored-snapshot.yaml
 
 ```
-5. code-server 배포
-6. apisix route 설정
+
+**2. apisix-gateway 설치**
+```
+# helm chart를 이용한 apisix 설치
+
+# apisix ingress와 tls 설정을 추가한 values.yaml을 적용한다.
+
+# self signed 인증서 생성 (Wildcard Top Level Domain 인식안됨 *.local -> *.kw.local)
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout local.key -out local.crt -subj '/CN=*.kw.local' -addext 'subjectAltName=DNS:*.kw.local'
+
+# 인증서 시크릿 생성
+kubectl create secret tls local-tls --key local.key --cert local.crt -n apisix
+
+# apisix 설치
+helm upgrade -i apisix apisix-2.10.0.tgz -f values.yaml -n apisix --create-namespace
+
+# 대시보드 인그레스 설정
+cat <<EOF > ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: apisix
+    app.kubernetes.io/name: apisix
+  name: apisix-dash
+  namespace: apisix
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: apisix-dash.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: apisix-dashboard
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - apisix-dash.kw.local
+    secretName: local-tls
+EOF
+
+k apply -f ingress.yaml
+
+```
+
+**3. keycloak 설치**
+
+```
+# local-tls 복사하여 keycloak 네임스페이스에 생성
+k get secret local-tls -o yaml | sed '/namespace:.*/d' | k apply -n keycloak -f -
+
+# Keycloak 설치
+helm upgrade -i keycloak keycloak-24.5.0.tgz -f values.yaml -n keycloak --create-namespace
+
+# 기존 ingress 삭제
+k delete ingress -n keycloak keycloak
+
+# 신규 ingress 생성
+k apply -f ingress.yml -n keycloak
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: keycloak.kw.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: keycloak
+            port:
+              name: http
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - keycloak.kw.local
+    secretName: local-tls
+
+```
+
+**4. keycloak realm, user 설정**
+
+```
+```
+
+**5. code-server 배포**
+
+```
+```
+
+**6. apisix route 설정**
+
+```
+```
 ---
 
 ```
