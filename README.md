@@ -91,7 +91,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs
 # self signed 인증서 생성 (Wildcard Top Level Domain 인식안됨 *.local -> *.kw.local)
 # openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout local.key -out local.crt -subj '/CN=*.kw.local' -addext 'subjectAltName=DNS:*.kw.local'
 
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout gateway.key -out apisix.crt -subj '/CN=gateway.local' -addext 'subjectAltName=DNS:gateway.local'
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout gateway.key -out gateway.crt -subj '/CN=gateway.local' -addext 'subjectAltName=DNS:gateway.local'
 
 # 인증서 시크릿 생성
 kubectl create secret tls gateway-tls --key gateway.key --cert gateway.crt -n apisix
