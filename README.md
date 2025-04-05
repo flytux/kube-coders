@@ -202,6 +202,8 @@ uri: /*
 name: 'code-server-route'
 plugins:
   openid-connect:
+    _meta:
+      disable: false
     bearer_only: false
     client_id: apisix                                 # CLIENT_ID
     client_secret: lk0DLH9zJcn4uGmtLi4hJ9SYJIzE32l6   # CLIENT_SECRET
@@ -229,6 +231,7 @@ plugins:
           local host_name = "code-" .. userinfo.sub
           local function parse_domain(host)
             local ip = ""
+            local host_name = host .. .code-server
             if not ipmatcher.parse_ipv4(host) and not ipmatcher.parse_ipv6(host)
             then
               local ip, err = core.resolver.parse_domain(host)
