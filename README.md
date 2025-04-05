@@ -23,11 +23,13 @@
 ```
 # nfs 서버 설치
 apt install nfs-server
+dnf install nfs-utils
+
 mkdir -p /var/nfs/pv
 chown -R 65534:65534 /var/nfs/pv
 
 # 파일 공유 설정
-cat <<EOF > /etc/exports\n/var/nfs/pv
+cat <<EOF > /etc/exports
 192.168.122.126(rw,sync,no_subtree_check,no_root_squash)  # node 1
 192.168.122.126(rw,sync,no_subtree_check,no_root_squash)  # node 2
 EOF
