@@ -206,6 +206,10 @@ helm upgrade -i code-4e2e53cf-8ce2-4950-bdc3-709e10c676e9 -f values.yaml code-se
 
 
 ```
+![user-login-a](./images/user-login-a.png)  
+![user-a-vs-code](./images/user-a-vs-code.png)
+![user-login-b](./images/user-login-b.png)  
+![user-b-vs-code](./images/user-b-vs-code.png)
 
 **6. apisix route 설정**
 
