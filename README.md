@@ -192,6 +192,19 @@ USER_ID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users?usern
 # Service 이름을 code-$USER_ID 로 설정하여 코드서버을 Deployment로 생성하여 배포
 # Code 서버의 최신 버전 이미지를 플러그인 포함하여 빌드
 # Keycloak USER_ID 생성 후 자동으로 배포하도록 구성
+
+# charts/code-server 디렉토리에서
+# vi values.yaml , USER_ID 값으로 셋팅
+
+fullnameOverride: "code-9c02ac07-ee1d-4f49-b799-ac7f0fd0397a"
+
+# release 명을 code-$USER_ID 값으로 설정하여 설치
+helm upgrade -i code-9c02ac07-ee1d-4f49-b799-ac7f0fd0397a -f values.yaml code-server-4.96.4.tgz -n code-server
+
+# 신규 사용자 ID 생성 후 추가로 배포
+helm upgrade -i code-4e2e53cf-8ce2-4950-bdc3-709e10c676e9 -f values.yaml code-server-4.96.4.tgz -n code-server
+
+
 ```
 
 **6. apisix route 설정**
@@ -203,25 +216,72 @@ hosts {
         fallthrough
 }
 
-# APISIX Dashboard에서 Route 추가
+k rollout restart deploy coredns -n kube-system
+
+
+# Curl을 이용하여 code-server 용 라우트 생성
+curl  -XPOST admin.local/apisix/admin/routes -H "X-Api-Key: edd1c9f034335f136f87ad84b625c8f1" -d '{
+    "uri":"/*",
+    "plugins":{
+        "openid-connect":{
+            "client_id":"apisix",
+            "client_secret":"15DchbvG38ltq8RwxU3l0090KTppMAtW",
+            "discovery":"http://keycloak.keycloak/realms/dev/.well-known/openid-configuration",
+            "scope":"openid profile",
+            "bearer_only":false,
+            "realm":"dev",
+            "introspection_endpoint_auth_method":"client_secret_post"
+        }
+    },
+    "upstream":{
+      "type":"roundrobin",
+      "nodes":{
+            "code.local":1
+      }
+    },
+    "enable_websocket": true
+}'
+
+# APISIX Dashboard에서 Route 편집
+http://dash.local/routes/list > More > View
 ---
 uri: /*
-name: 'code-server-route'
+name: code
 plugins:
   openid-connect:
-    _meta:
-      disable: false
+    accept_none_alg: false
+    accept_unsupported_alg: true
+    access_token_expires_leeway: 0
+    access_token_in_authorization_header: false
     bearer_only: false
-    client_id: apisix                                 # CLIENT_ID
-    client_secret: lk0DLH9zJcn4uGmtLi4hJ9SYJIzE32l6   # CLIENT_SECRET
+    client_id: apisix
+    client_jwt_assertion_expires_in: 60
+    client_secret: o5BRqF8NTJnHneT9caK1NLyNfWQzDw7aXWARTtBL0XSoObfytdbGpnjsUvuUNEMg
     discovery: http://keycloak.keycloak/realms/dev/.well-known/openid-configuration
+    force_reauthorize: false
+    iat_slack: 120
     introspection_endpoint_auth_method: client_secret_post
-    realm: dev    
+    introspection_interval: 0
+    jwk_expires_in: 86400
+    jwt_verification_cache_ignore: false
+    logout_path: /logout
+    phase: access
+    realm: dev
+    renew_access_token_on_expiry: true
+    revoke_tokens_on_logout: false
+    scope: openid profile
+    session:
+      secret: vdt7PMzSHsUu1zvNWuiv6GNAOnw0b4x6U15yObUEd04=
+    set_access_token_header: true
+    set_id_token_header: true
+    set_refresh_token_header: false
+    set_userinfo_header: true
+    ssl_verify: false
+    timeout: 3
     token_endpoint_auth_method: client_secret_basic
-  proxy-rewrite:
-    regex_uri:
-      - ^/(.*)
-      - /$1
+    unauth_action: auth
+    use_nonce: false
+    use_pkce: false
   serverless-post-function:
     functions:
       - |
@@ -231,26 +291,30 @@ plugins:
           local cjson = require "cjson"
           local upstream = require("apisix.upstream")
           local ipmatcher  = require("resty.ipmatcher")
-          local jwt_userinfo = core.request.header(ctx, "X-Userinfo")
-          decoded_userinfo, err = b64.decode_base64url(jwt_userinfo)
-          local userinfo = cjson.decode(decoded_userinfo)
-          ngx.log(ngx.ERR, "UserId: " .. userinfo.sub)
-          local host_name = "code-" .. userinfo.sub
+
+          local user = core.request.header(ctx, "X-Userinfo")
+          decoded_user, err = b64.decode_base64url(user)
+          ngx.log(ngx.ERR, "X-Userinfo: " .. decoded_user)
+          local user_obj = cjson.decode(decoded_user)
+          ngx.log(ngx.ERR, "UserId: " .. user_obj.sub)
+          local host_name = "code-" .. user_obj.sub .. ".code-server"
+
           local function parse_domain(host)
             local ip = ""
-            local host_name = host .. .code-server
             if not ipmatcher.parse_ipv4(host) and not ipmatcher.parse_ipv6(host)
             then
               local ip, err = core.resolver.parse_domain(host)
               if ip then
                 return ip
               end
+
               if err then
                 core.log.error("dns resolver domain: ", host, " error: ", err)
               end
             end
             return host
           end
+
           local up_conf = {
                             timeout = {
                             connect = 6,
@@ -269,17 +333,20 @@ plugins:
                             nodes = {
                               {
                                 priority = 0,
-                                port = 8443,
+                                port = 8080,
                                 host = parse_domain(host_name),
                                 weight = 1
                               }
                             }
                           }
+
           local matched_route = ctx.matched_route
           up_conf.parent = matched_route
           local upstream_key = up_conf.type .. "#route_" .. matched_route.value.id
           core.log.info("upstream_key: ", upstream_key)
+
           upstream.set(ctx, upstream_key, ctx.conf_version, up_conf)  
+
         end
         return log
     phase: access
@@ -289,7 +356,10 @@ upstream:
       port: 80
       weight: 1
   type: roundrobin
+  hash_on: vars
   scheme: http
   pass_host: pass
 enable_websocket: true
+status: 1
+
 ```
