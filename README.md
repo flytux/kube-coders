@@ -102,6 +102,10 @@ kubectl create secret tls gateway-tls --key gateway.key --cert gateway.crt -n ap
 # apisix 설치
 helm upgrade -i apisix apisix-2.10.0.tgz -f values.yaml -n apisix --create-namespace
 
+
+kubectl delete ingress apisix -n apisix
+
+kubectl apply -f ingress.yml -n apisix
 ```
 
 **3. keycloak 설치**
