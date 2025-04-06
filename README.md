@@ -34,6 +34,9 @@ cat <<EOF > /etc/exports
 /var/nfs/pv 192.168.122.210(rw,sync,no_subtree_check,no_root_squash)  # node 2
 EOF
 
+systemctl restart nfs-server
+exportfs -v
+
 # nfs-csi 드라이버 설치
 curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.5.0/deploy/install-driver.sh | bash -s v4.5.0 --
 
