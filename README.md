@@ -363,3 +363,4 @@ enable_websocket: true
 status: 1
 
 ```
+![apisix-dashboard-route](./images/apisix-dashboard-route-edit.png)  
