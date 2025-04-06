@@ -48,8 +48,8 @@ metadata:
   name: nfs-csi
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: 192.168.122.126
-  share: /var/nfs/pv
+  server: 192.168.122.126 # NFS 서버 주소
+  share: /var/nfs/pv      # 공유 폴더 이름
   mountPermissions: "0777"
 reclaimPolicy: Retain
 volumeBindingMode: Immediate
@@ -57,19 +57,21 @@ mountOptions:
   - nfsvers=4.1
 EOF
 
+# 스토리지 클래스 생성
 kubectl apply -f nfs-sc.yml
 
+# 기본 스토리지 클래스 설정
 kubectl patch storageclass nfs-csi -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 
 # pvc 생성 테스트
 kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/example/pvc-nfs-csi-dynamic.yaml
 
-# snapshot controller 설치
-
+# snapshot controller CRD 설치
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 
+# external snapshot controller 설치
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v6.0.1/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 
@@ -89,11 +91,12 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs
 ```
 # helm chart를 이용한 apisix 설치
 
-# apisix ingress와 tls 설정을 추가한 values.yaml을 적용한다.
+# apisix ingress와 tls 설정을 추가한 values.yaml을 적용
 
 # self signed 인증서 생성 (Wildcard Top Level Domain 인식안됨 *.local -> *.kw.local)
 # openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout local.key -out local.crt -subj '/CN=*.kw.local' -addext 'subjectAltName=DNS:*.kw.local'
 
+# gateway.local (API서버 ingress 용 사설인증서 생성)
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout gateway.key -out gateway.crt -subj '/CN=gateway.local' -addext 'subjectAltName=DNS:gateway.local'
 
 # 인증서 시크릿 생성
@@ -102,16 +105,18 @@ kubectl create secret tls gateway-tls --key gateway.key --cert gateway.crt -n ap
 # apisix 설치
 helm upgrade -i apisix apisix-2.10.0.tgz -f values.yaml -n apisix --create-namespace
 
-
+# 기본 ingress 삭제 후, dashboard, admin API 용 ingress 생성
 kubectl delete ingress apisix -n apisix
-
 kubectl apply -f ingress.yml -n apisix
+
+# host 파일에 ingress controller IP 설정
+# 192.168.100.1 gateway.local dash.local admin.local key.local
 ```
 
 **3. keycloak 설치**
 
 ```
-# Keycloak 설치
+# Keycloak 설치 - Postgres 기본 설정으로 설치
 helm upgrade -i keycloak keycloak-24.5.0.tgz -f values.yaml -n keycloak --create-namespace
 ```
 
@@ -204,11 +209,20 @@ helm upgrade -i code-9c02ac07-ee1d-4f49-b799-ac7f0fd0397a -f values.yaml code-se
 # 신규 사용자 ID 생성 후 추가로 배포
 helm upgrade -i code-4e2e53cf-8ce2-4950-bdc3-709e10c676e9 -f values.yaml code-server-4.96.4.tgz -n code-server
 
+# Keycloak 설정, Code-server 배포를 자동화하는 Job 구성 (TBD)
+
 
 ```
+**5-1 사용자 A 로그인**
 ![user-login-a](./images/user-login-a.png)  
+
+**5-2 사용자 A 용 코드서버로 화면 이동**
 ![user-a-vs-code](./images/user-a-vs-code.png)
+
+**5-3 사용자 B 로그인**
 ![user-login-b](./images/user-login-b.png)  
+
+**5-4 사용자 B 용 코드서버로 화면 이동**
 ![user-b-vs-code](./images/user-b-vs-code.png)
 
 **6. apisix route 설정**
@@ -220,10 +234,12 @@ hosts {
         fallthrough
 }
 
+# CoreDNS 재기동
 k rollout restart deploy coredns -n kube-system
 
 
 # Curl을 이용하여 code-server 용 라우트 생성
+# API 서버에 code-server용 route를 초기 생성한 후 keycloak 인증 후 upstream 주소를 변경하는 function을 추가
 curl  -XPOST admin.local/apisix/admin/routes -H "X-Api-Key: edd1c9f034335f136f87ad84b625c8f1" -d '{
     "uri":"/*",
     "plugins":{
@@ -247,6 +263,7 @@ curl  -XPOST admin.local/apisix/admin/routes -H "X-Api-Key: edd1c9f034335f136f87
 }'
 
 # APISIX Dashboard에서 Route 편집
+# serverless-function과 upstream 내용 추가 반영 후 submit 하여 적용
 http://dash.local/routes/list > More > View
 ---
 uri: /*
