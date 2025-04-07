@@ -4,14 +4,32 @@ metadata:
   labels:
     app.kubernetes.io/instance: apisix
     app.kubernetes.io/name: apisix
-  name: apisix-dash
+  name: apisix-admin
   namespace: apisix
 spec:
   ingressClassName: traefik
-  tls:
-  - hosts:
-    - gateway.local
-    secretName: gateway-tls
+  rules:
+  - host: admin.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: apisix-admin
+            port:
+              number: 9180
+        path: /
+        pathType: ImplementationSpecific
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: apisix
+    app.kubernetes.io/name: apisix
+  name: apisix-dashboard
+  namespace: apisix
+spec:
+  ingressClassName: traefik
   rules:
   - host: dash.local
     http:
@@ -23,3 +41,29 @@ spec:
               number: 80
         path: /
         pathType: ImplementationSpecific
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/instance: apisix
+    app.kubernetes.io/name: apisix
+  name: apisix
+  namespace: apisix
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: gateway.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: apisix-gateway
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - gateway.local
+    secretName: gateway-tls
