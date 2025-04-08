@@ -1,0 +1,1 @@
+curl -LO https://services.gradle.org/distributions/gradle-8.8-bin.zip
