@@ -13,17 +13,23 @@ RUN echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION
 
 RUN apt update && apt-get install -y temurin-21-jdk -y 
 
-
-COPY extensions /home/coder/extensions
-
+RUN curl -LO https://services.gradle.org/distributions/gradle-8.8-bin.zip
 # Install gradle
-RUN unzip -d /opt/gradle extensions/gradle-8.8-bin.zip
+RUN unzip -d /opt/gradle gradle-8.8-bin.zip && rm gradle-8.8-bin.zip
 
 # Install k8s tools NEED ClusterRole API access
 #COPY k8s-tools /usr/local/bin
 
 # Install copilot extensions
 USER coder
+
+COPY extensions extensions
+
 RUN code-server --install-extension extensions/copilot-1.259.1336_vsixhub.com.vsix && code-server --install-extension extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
+
+# Setup starship shell
+RUN sudo cp extensions/starship /usr/local/bin
+
+COPY extensions/.bashrc /home/coder
 
 ENV JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
