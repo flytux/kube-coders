@@ -416,5 +416,28 @@ upstream:
 enable_websocket: true
 status: 1
 
+---
+# favicon 호출 에러 방지를 위한 dummy route 추가
+# browser에서 code-server 연동 시 favicon 호출로 인한 500 에러 발생으로 해당 오류 제거를 위한 별도 route 추가
+uri: /favicon.ico
+name: favicon.ico
+upstream:
+  nodes:
+    - host: httpbin.org
+      port: 80
+      weight: 1
+  timeout:
+    connect: 6
+    send: 6
+    read: 6
+  type: roundrobin
+  scheme: http
+  pass_host: pass
+  keepalive_pool:
+    idle_timeout: 60
+    requests: 1000
+    size: 320
+status: 1
+
 ```
 ![apisix-dashboard-route](./images/apisix-dashboard-route-edit.png)  
