@@ -289,7 +289,7 @@ curl  -XPOST admin.local/apisix/admin/routes -H "X-Api-Key: edd1c9f034335f136f87
     "upstream":{
       "type":"roundrobin",
       "nodes":{
-            "httpbin.org"80:1
+            "httpbin.org:80":1
       }
     },
     "enable_websocket": true
