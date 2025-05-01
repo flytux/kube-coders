@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dev-backend
+  namespace: code-server
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: code-f079498e-c932-41bd-87e2-41717e5c8fb7-6554456dd6-lvxwr.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: code-f079498e-c932-41bd-87e2-41717e5c8fb7-6554456dd6-lvxwr
+            port:
+              number: 8081
+        path: /
+        pathType: ImplementationSpecific

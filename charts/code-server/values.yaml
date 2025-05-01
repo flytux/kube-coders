@@ -1,6 +1,11 @@
-#nameOverride: "9c02ac07-ee1d-4f49-b799-ac7f0fd0397a"
+#nameOverride: "f079498e-c932-41bd-87e2-41717e5c8fb7"
+# a80214d6-5deb-4b5e-9ddb-0cdcbaee91ec
 
-fullnameOverride: "code-4e2e53cf-8ce2-4950-bdc3-709e10c676e9"
+fullnameOverride: "code-a80214d6-5deb-4b5e-9ddb-0cdcbaee91ec"
+image:
+  repository: docker.local/code-server
+  tag: 'jdk21'
+  pullPolicy: Always
 
 podSecurityContext: 
   fsGroup: 1000

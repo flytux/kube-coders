@@ -27,6 +27,11 @@ COPY extensions extensions
 
 RUN code-server --install-extension extensions/copilot-1.259.1336_vsixhub.com.vsix && code-server --install-extension extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
 
+RUN code-server --install-extension extensions/mhutchie.git-graph-1.30.0.vsix && code-server --install-extension extensions/vscjava.vscode-spring-boot-dashboard-0.14.2025041702.vsix && code-server --install-extension extensions/vscode-spring-boot-1.63.0-202504231030.vsix && code-server --install-extension extensions/humao.rest-client-0.26.0.vsix 
+
+RUN code-server --install-extension vscjava.vscode-java-pack
+RUN code-server --install-extension vmware.vscode-boot-dev-pack
+
 # Setup starship shell
 RUN sudo cp extensions/starship /usr/local/bin
 
