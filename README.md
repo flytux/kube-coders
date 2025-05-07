@@ -204,46 +204,37 @@ USER_ID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users?usern
 fullnameOverride: "code-9c02ac07-ee1d-4f49-b799-ac7f0fd0397a"
 
 # release 명을 code-$USER_ID 값으로 설정하여 설치
-helm upgrade -i code-9c02ac07-ee1d-4f49-b799-ac7f0fd0397a -f values.yaml code-server-4.96.4.tgz -n code-server
+helm upgrade -i code-f079498e-c932-41bd-87e2-41717e5c8fb7 -n code-server -f backend-values.yaml code
 
 # 신규 사용자 ID 생성 후 추가로 배포
-helm upgrade -i code-4e2e53cf-8ce2-4950-bdc3-709e10c676e9 -f values.yaml code-server-4.96.4.tgz -n code-server
+helm upgrade -i code-a80214d6-5deb-4b5e-9ddb-0cdcbaee91ec -n code-server -f frontend-values.yaml code
 
 # Keycloak 설정, Code-server 배포를 자동화하는 Job 구성 (TBD)
 
-# 현재 Code 서버는 codercom/code-server:4.96.4 이미지를 기반으로 JDK21, gradle-8.8-bin, copilot/copilot-chat 플러그인이 설치된 이미지로 구성
+# 현재 Code 서버는 linuxserver/code-server:4.96.4 이미지를 기반으로 JDK21, gradle-8.8-bin, copilot/copilot-chat 플러그인이 설치된 이미지로 구성
 # 필요시 kubectl, helm, k9s 등 k8s 툴킷 설치 가능 (API access role 설정 필요)
 
-FROM codercom/code-server:4.96.4
+FROM lscr.io/linuxserver/code-server:4.96.4
 
-USER root
-
-# Install JDK21
 RUN  echo "deb [arch=amd64] https://some.repository.url focal main" | sudo tee /etc/apt/sources.list.d/adoptium.list > /dev/null
-
 RUN apt update && apt-get install -y wget apt-transport-https gpg unzip
-
 RUN wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/adoptium.gpg > /dev/null
-
 RUN echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
-
 RUN apt update && apt-get install -y temurin-21-jdk -y
+RUN  apt-get clean && rm -rf /config/* /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
+COPY extensions /root/extensions
+RUN  mv /root/extensions/starship /usr/local/bin
+RUN  cp /root/extensions/.bashrc  /config
+ENV  PATH=/app/code-server/bin:$PATH
 
-COPY extensions /home/coder/extensions
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/copilot-1.259.1336_vsixhub.com.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/mhutchie.git-graph-1.30.0.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/humao.rest-client-0.26.0.vsix
 
-# Install gradle
-RUN unzip -d /opt/gradle extensions/gradle-8.8-bin.zip
-
-# Install k8s tools NEED ClusterRole API access
-#COPY k8s-tools /usr/local/bin
-
-# Install copilot extensions
-USER coder
-RUN code-server --install-extension extensions/copilot-1.259.1336_vsixhub.com.vsix && code-server --install-extension extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
-
-ENV JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
-
+RUN code-server --extensions-dir /config/extensions --install-extension vscjava.vscode-java-pack
+RUN code-server --extensions-dir /config/extensions --install-extension vmware.vscode-boot-dev-pack
 
 ```
 **5-1 사용자 A 로그인**
