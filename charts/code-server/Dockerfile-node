@@ -1,28 +1,27 @@
-FROM codercom/code-server:4.96.4
+FROM lscr.io/linuxserver/code-server:4.96.4
 
-USER root
 
 # Install NODE 23
 
 RUN curl -sL https://deb.nodesource.com/setup_23.x -o nodesource_setup.sh
 RUN bash nodesource_setup.sh
 RUN apt install nodejs -y
+RUN  apt-get clean && rm -rf /config/* /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
 # Install k8s tools NEED ClusterRole API access
-#COPY k8s-tools /usr/local/bin
 
 # Install copilot extensions
-USER coder
 
-COPY extensions extensions
+COPY extensions /root/extensions
+RUN  mv /root/extensions/starship /usr/local/bin
+RUN  cp /root/extensions/.bashrc  /config
+ENV  PATH=/app/code-server/bin:$PATH
 
-RUN code-server --install-extension extensions/copilot-1.259.1336_vsixhub.com.vsix && code-server --install-extension extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/copilot-1.259.1336_vsixhub.com.vsix 
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/mhutchie.git-graph-1.30.0.vsix 
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/humao.rest-client-0.26.0.vsix
 
-RUN code-server --install-extension extensions/mhutchie.git-graph-1.30.0.vsix && code-server --install-extension extensions/humao.rest-client-0.26.0.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/dbaeumer.vscode-eslint-3.0.13.vsix 
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/esbenp.prettier-vscode-11.0.0.vsix
 
-RUN code-server --install-extension extensions/dbaeumer.vscode-eslint-3.0.13.vsix && code-server --install-extension extensions/esbenp.prettier-vscode-11.0.0.vsix
-
-# Setup starship shell
-RUN sudo cp extensions/starship /usr/local/bin
-
-COPY extensions/.bashrc /home/coder

@@ -1,8 +1,5 @@
-FROM codercom/code-server:4.96.4
+FROM lscr.io/linuxserver/code-server:4.96.4
 
-USER root
-
-# Install JDK21
 RUN  echo "deb [arch=amd64] https://some.repository.url focal main" | sudo tee /etc/apt/sources.list.d/adoptium.list > /dev/null
 
 RUN apt update && apt-get install -y wget apt-transport-https gpg unzip
@@ -11,30 +8,21 @@ RUN wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gp
 
 RUN echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
 
-RUN apt update && apt-get install -y temurin-21-jdk -y 
+RUN apt update && apt-get install -y temurin-21-jdk -y
 
-RUN curl -LO https://services.gradle.org/distributions/gradle-8.8-bin.zip
-# Install gradle
-RUN unzip -d /opt/gradle gradle-8.8-bin.zip && rm gradle-8.8-bin.zip
 
-# Install k8s tools NEED ClusterRole API access
-#COPY k8s-tools /usr/local/bin
+RUN  apt-get clean && rm -rf /config/* /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
-# Install copilot extensions
-USER coder
+COPY extensions /root/extensions
+RUN  mv /root/extensions/starship /usr/local/bin
+RUN  cp /root/extensions/.bashrc  /config
+ENV  PATH=/app/code-server/bin:$PATH
 
-COPY extensions extensions
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/copilot-1.259.1336_vsixhub.com.vsix 
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/mhutchie.git-graph-1.30.0.vsix 
+RUN code-server --extensions-dir /config/extensions --install-extension /root/extensions/humao.rest-client-0.26.0.vsix
 
-RUN code-server --install-extension extensions/copilot-1.259.1336_vsixhub.com.vsix && code-server --install-extension extensions/copilot-chat-0.23.2024120602_vsixhub.com.vsix
+RUN code-server --extensions-dir /config/extensions --install-extension vscjava.vscode-java-pack
+RUN code-server --extensions-dir /config/extensions --install-extension vmware.vscode-boot-dev-pack
 
-RUN code-server --install-extension extensions/mhutchie.git-graph-1.30.0.vsix && code-server --install-extension extensions/vscjava.vscode-spring-boot-dashboard-0.14.2025041702.vsix && code-server --install-extension extensions/vscode-spring-boot-1.63.0-202504231030.vsix && code-server --install-extension extensions/humao.rest-client-0.26.0.vsix 
-
-RUN code-server --install-extension vscjava.vscode-java-pack
-RUN code-server --install-extension vmware.vscode-boot-dev-pack
-
-# Setup starship shell
-RUN sudo cp extensions/starship /usr/local/bin
-
-COPY extensions/.bashrc /home/coder
-
-ENV JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64

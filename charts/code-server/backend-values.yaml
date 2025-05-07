@@ -1,0 +1,35 @@
+# Default values for code.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: docker.local/code-server
+  pullPolicy: Always
+  tag: "jdk21"
+
+fullnameOverride: "code-f079498e-c932-41bd-87e2-41717e5c8fb7"
+
+resources: 
+  limits:
+    cpu: 2000m
+    memory: 8192Mi
+  requests:
+    cpu: 2000m
+    memory: 8192Mi
+
+service:
+  type: ClusterIP
+  port: 8443
+
+volumes: 
+- name: workspace
+  persistentVolumeClaim:
+    claimName: code-f079498e-c932-41bd-87e2-41717e5c8fb7
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: 
+- name: workspace
+  mountPath: "/config/workspace"
+  readOnly: false
