@@ -189,6 +189,11 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users" \
 USER_ID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users?username=jaehoon" \
      -H "Authorization: Bearer ${ADMIN_TOKEN}" \
      | jq -r '.[0].id')
+
+
+# Apisix 클라이언트 설정 추가
+Valid Redirect URLs -> * 
+
 ```
 
 **5. code-server 배포**
@@ -213,6 +218,7 @@ helm upgrade -i code-a80214d6-5deb-4b5e-9ddb-0cdcbaee91ec -n code-server -f fron
 
 # 현재 Code 서버는 linuxserver/code-server:4.96.4 이미지를 기반으로 JDK21, gradle-8.8-bin, copilot/copilot-chat 플러그인이 설치된 이미지로 구성
 # 필요시 kubectl, helm, k9s 등 k8s 툴킷 설치 가능 (API access role 설정 필요)
+# linuxserver/code-server 이미지 기본 서비스 포트는 8443
 
 FROM lscr.io/linuxserver/code-server:4.96.4
 
@@ -378,7 +384,7 @@ plugins:
                             nodes = {
                               {
                                 priority = 0,
-                                port = 8080,
+                                port = 8443,
                                 host = parse_domain(host_name),
                                 weight = 1
                               }
